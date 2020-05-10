@@ -1,8 +1,8 @@
-package com.bankexport;
+package com.dataexport;
 
 import lombok.Getter;
 
-public class BankExportItem
+public class DataExportItem
 {
 	@Getter
 	private final String name;
@@ -13,7 +13,7 @@ public class BankExportItem
 	@Getter
 	private final int id;
 
-	BankExportItem(String name, int quantity, int id)
+	DataExportItem(String name, int quantity, int id)
 	{
 		this.name = name;
 		this.quantity = quantity;

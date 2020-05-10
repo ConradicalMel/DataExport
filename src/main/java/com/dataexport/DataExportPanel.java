@@ -1,14 +1,8 @@
-package com.bankexport;
+package com.dataexport;
 
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import net.runelite.client.util.ImageUtil;
 
-public class BankExportPanel extends JPanel
+public class DataExportPanel extends JPanel
 {
 //	private static final ImageIcon EXPORT_ICON;
 //	private static final ImageIcon EXPORT_HOVER_ICON;
@@ -21,7 +15,8 @@ public class BankExportPanel extends JPanel
 //		EXPORT_ICON = new ImageIcon(exportImg);
 //		EXPORT_HOVER_ICON = new ImageIcon(exportImgHover);
 	}
-	BankExportPanel(BankExportPlugin plugin, BankExportPluginPanel panel)
+
+	DataExportPanel(DataExportPlugin plugin, DataExportPluginPanel panel)
 	{
 //		exportLabel.setToolTipText("Export setup");
 //		exportLabel.setIcon(EXPORT_ICON);

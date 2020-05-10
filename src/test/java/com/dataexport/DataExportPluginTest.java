@@ -1,13 +1,13 @@
-package com.bankexport;
+package com.dataexport;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
-public class BankExportPluginTest
+public class DataExportPluginTest
 {
 	public static void main(String[] args) throws Exception
 	{
-		ExternalPluginManager.loadBuiltin(BankExportPlugin.class);
+		ExternalPluginManager.loadBuiltin(DataExportPlugin.class);
 		RuneLite.main(args);
 	}
 }

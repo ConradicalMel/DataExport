@@ -1,17 +1,16 @@
-package com.bankexport;
+package com.dataexport;
 
-import java.util.Map;
 import net.runelite.api.Client;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.PluginPanel;
 
-public class BankExportPluginPanel extends PluginPanel
+public class DataExportPluginPanel extends PluginPanel
 {
 	//private final BankExport bankExport;
 
 	//private final BankExportPlugin plugin;
 
-	public BankExportPluginPanel(Client client, BankExportConfig config, ItemManager itemManager)
+	public DataExportPluginPanel(Client client, DataExportConfig config, ItemManager itemManager)
 	{
 		//this.plugin = plugin;
 

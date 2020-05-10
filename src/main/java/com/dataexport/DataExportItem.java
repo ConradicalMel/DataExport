@@ -1,6 +1,7 @@
 package com.dataexport;
 
 import lombok.Getter;
+import net.runelite.client.game.ItemManager;
 
 public class DataExportItem
 {

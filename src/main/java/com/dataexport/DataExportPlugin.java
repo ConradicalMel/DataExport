@@ -1,9 +1,13 @@
 package com.dataexport;
 
+import com.dataexport.localstorage.DataWriter;
+import com.dataexport.ui.DataExportPluginPanel;
 import com.google.inject.Provides;
+import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 import javax.inject.Inject;
+import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.InventoryID;
@@ -11,20 +15,22 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.ItemContainerChanged;
-import net.runelite.api.events.ScriptCallbackEvent;
-import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.ImageUtil;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Bank Export"
+	name = "Data Export"
 )
 public class DataExportPlugin extends Plugin
 {
@@ -46,12 +52,28 @@ public class DataExportPlugin extends Plugin
 	@Inject
 	private DataExportConfig config;
 
-	private DataExport dataExport;
+	@Inject
+	private KeyManager keyManager;
+
+	@Inject
+	public DataWriter dataWriter;
+
+	private DataExportPluginPanel panel;
+
+	public DataExport dataExport;
+
+	private NavigationButton navButton;
 
 	private int hashBank = -1;
+
 	private int hashSeedVault = -1;
+
 	private int hashInventory = -1;
+
 	private int hashEquipment = -1;
+
+	int hashAllItems = -1;
+
 	private int hashSkills = -1;
 
 	@Provides
@@ -63,77 +85,76 @@ public class DataExportPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		log.info("Bank Export started!");
+		log.info("Data Export started!");
+		dataExport = new DataExport(client, config, itemManager, this);
 
-		dataExport = new DataExport(client, config, itemManager);
+		this.panel = new DataExportPluginPanel(itemManager, this, config, dataExport);
+
+		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(getClass(), "/data_export_icon.png");
+
+		navButton = NavigationButton.builder()
+			.tooltip("Data Exporter")
+			.icon(icon)
+			.priority(6)
+			.panel(panel)
+			.build();
+
+		clientToolbar.addNavigation(navButton);
+
+		clientThread.invokeLater(() ->
+		{
+			switch (client.getGameState())
+			{
+				case STARTING:
+				case UNKNOWN:
+					return false;
+			}
+
+			SwingUtilities.invokeLater(() ->
+			{
+				panel.rebuild();
+			});
+
+			return true;
+		});
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("Bank Export stopped!");
+		log.info("Data Export stopped!");
+
+		clientToolbar.removeNavigation(navButton);
 
 	}
 
 	@Subscribe
-	public void onScriptCallbackEvent(ScriptCallbackEvent event)
+	public void onConfigChanged(ConfigChanged event)
 	{
-//		if (!event.getEventName().equals("setBankTitle") || client.getTickCount() == lastCheckTick)
-//		{
-//			return;
-//		}
-//
-//		// Check if the contents have changed.
-//		final ItemContainer c = client.getItemContainer(InventoryID.BANK);
-//		if (c == null)
-//		{
-//			return;
-//		}
-//
-//		final Item[] widgetItems = c.getItems();
-//		if (widgetItems == null || widgetItems.length == 0)
-//		{
-//			return;
-//		}
-//
-//		ArrayList<DataExportItem> arrayList = new ArrayList<>();
-//
-//		for (Item widgetItem : widgetItems)
-//		{
-//			ItemComposition itemComposition = itemManager.getItemComposition(widgetItem.getId());
-//			String name = itemComposition.getName();
-//			DataExportItem item = new DataExportItem(name, widgetItem.getQuantity(), widgetItem.getId());
-//			arrayList.add(item);
-//		}
-//
-//		final int curHash = arrayList.hashCode();
-//		if (bankHash != curHash)
-//		{
-//			bankHash = curHash;
-//			//SwingUtilities.invokeLater(() -> panel.setBankMap(m));
-//		}
-//
-//		lastCheckTick = client.getTickCount();
-//
-//		for (DataExportItem item : arrayList)
-//		{
-//			System.out.println("Name: " + item.getName() + "\tQuantity: " + item.getQuantity() + "\tID: " + item.getId());
-//		}
-//
-//		dataExport.setArrayListBank(arrayList);
-//		dataExport.rebuildItemArrayList();
+		if (!event.getGroup().equals("dataexport"))
+		{
+			return;
+		}
 
-	}
+		Map<Integer, DataExportItem> mapBlank = new HashMap<>();
+		if (!config.includeBank())
+		{
+			dataExport.setMapBank(mapBlank);
+		}
+		if (config.includeSeedVault())
+		{
+			dataExport.setMapSeedVault(mapBlank);
+		}
+		if (config.includeInventory())
+		{
+			dataExport.setMapInventory(mapBlank);
+		}
+		if (config.includeEquipment())
+		{
+			dataExport.setMapEquipment(mapBlank);
+		}
 
-	@Subscribe
-	public void onWidgetLoaded(WidgetLoaded event)
-	{
-//		if (event.getGroupId() != WidgetID.SEED_VAULT_GROUP_ID || !config.seedVaultValue())
-//		{
-//			return;
-//		}
-//
-//		updateSeedVaultData();
+		panel.rebuild();
 	}
 
 	@Subscribe
@@ -156,6 +177,7 @@ public class DataExportPlugin extends Plugin
 		int hash = hashItems(widgetItems);
 
 		Map<Integer, DataExportItem> mapContainer = new HashMap<>();
+		Map<Integer, DataExportItem> mapItems = dataExport.getMapItems();
 
 		for (Item widgetItem : widgetItems)
 		{
@@ -169,35 +191,36 @@ public class DataExportPlugin extends Plugin
 			{
 				DataExportItem item = new DataExportItem(name, quantity, id);
 				mapContainer.putIfAbsent(id, item);
+				dataExport.addItemAll(id, item);
 			}
 		}
 
-		if (mapContainer == null)
+		if (mapContainer.size() < 2)
 		{
 			return;
 		}
 
-		Map<Integer, DataExportItem> mapItems = dataExport.getMapItems();
-		mapItems.putAll(mapContainer);
-		dataExport.setMapItems(mapItems);
-
 		if (itemContainerId == InventoryID.BANK.getId() && config.includeBank() && hash != hashBank)
 		{
+			log.info("Hash bank: " + hashBank);
 			hashBank = hash;
 			updateBankData(mapContainer);
 		}
 		else if (itemContainerId == InventoryID.SEED_VAULT.getId() && config.includeSeedVault() && hash != hashSeedVault)
 		{
+			log.info("Hash seed vault: " + hashSeedVault);
 			hashSeedVault = hash;
 			updateSeedVaultData(mapContainer);
 		}
 		else if (itemContainerId == InventoryID.INVENTORY.getId() && config.includeInventory() && hash != hashInventory)
 		{
+			log.info("Hash inventory: " + hashInventory);
 			hashInventory = hash;
 			updateInventoryData(mapContainer);
 		}
 		else if (itemContainerId == InventoryID.EQUIPMENT.getId() && config.includeEquipment() && hash != hashEquipment)
 		{
+			log.info("Hash equipment: " + hashEquipment);
 			hashEquipment = hash;
 			updateEquipmentData(mapContainer);
 		}
@@ -209,24 +232,32 @@ public class DataExportPlugin extends Plugin
 	{
 		System.out.println("Updating bank!");
 		dataExport.setMapBank(map);
+		dataWriter.writeDataFile("container_bank", map);
+		log.debug("Bank Container Map: {}", map);
 	}
 
 	private void updateSeedVaultData(Map<Integer, DataExportItem> map)
 	{
 		System.out.println("Updating seed vault!");
 		dataExport.setMapSeedVault(map);
+		dataWriter.writeDataFile("container_seed_vault", map);
+		log.debug("Seed Vault Container Map: {}", map);
 	}
 
 	private void updateInventoryData(Map<Integer, DataExportItem> map)
 	{
 		System.out.println("Updating inventory!");
 		dataExport.setMapInventory(map);
+		dataWriter.writeDataFile("container_inventory", map);
+		log.debug("Inventory Container Map: {}", map);
 	}
 
 	private void updateEquipmentData(Map<Integer, DataExportItem> map)
 	{
 		System.out.println("Updating equipment!");
 		dataExport.setMapEquipment(map);
+		dataWriter.writeDataFile("container_equipment", map);
+		log.debug("Equipment Container Map: {}", map);
 	}
 
 	private int hashItems(final Item[] items)

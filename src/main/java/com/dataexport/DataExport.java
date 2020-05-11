@@ -167,7 +167,7 @@ public class DataExport
 			return;
 		}
 
-		System.out.println("Adding to list: " + item.getName());
+		//System.out.println("Adding to list: " + item.getName());
 		mapItems.put(id, item);
 	}
 }

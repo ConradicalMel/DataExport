@@ -21,6 +21,7 @@ import net.runelite.api.Constants;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
+
 public class DataExportTabContentPanel extends JPanel
 {
 	private final ItemManager itemManager;
@@ -54,7 +55,7 @@ public class DataExportTabContentPanel extends JPanel
 		DOWNLOAD_ICON = new ImageIcon(downloadIcon);
 	}
 
-	DataExportTabContentPanel(DataExportPlugin plugin, DataExportPluginPanel panel, DataExportConfig config, DataExport dataExport, ItemManager itemManager, ImageIcon icon, String dataContainer, Map<Integer, DataExportItem> map)
+	DataExportTabContentPanel(DataExportPlugin plugin, DataExportPluginPanel panel, DataExportConfig config, DataExport dataExport, ItemManager itemManager, ImageIcon icon, String dataContainer)
 	{
 		this.plugin = plugin;
 		this.panel = panel;
@@ -90,7 +91,7 @@ public class DataExportTabContentPanel extends JPanel
 			{
 				if (SwingUtilities.isLeftMouseButton(e))
 				{
-					dataExport.exportAllItems();
+					//dataExport.exportAllItems();
 					panel.rebuild();
 				}
 			}
@@ -119,7 +120,7 @@ public class DataExportTabContentPanel extends JPanel
 			{
 				if (SwingUtilities.isLeftMouseButton(e))
 				{
-					plugin.dataWriter.writeDataFile(dataContainer, map);
+					plugin.dataWriter.writeDataFile(dataContainer, plugin.dataExport.getMapItems());
 					panel.rebuild();
 				}
 			}

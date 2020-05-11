@@ -98,10 +98,10 @@ public class DataExportPluginPanel extends PluginPanel
 		containerContainer.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		containerContainer.setVisible(true);
 
-		bankTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, BANK_ICON, "container_bank", plugin.dataExport.getMapBank());
-		seedVaultTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, SEED_VAULT_ICON, "container_seed_vault", plugin.dataExport.getMapSeedVault());
-		inventoryTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, INVENTORY_ICON, "container_inventory", plugin.dataExport.getMapInventory());
-		equipmentTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, EQUIPMENT_ICON, "container_equipment", plugin.dataExport.getMapEquipment());
+		bankTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, BANK_ICON, "container_bank");
+		seedVaultTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, SEED_VAULT_ICON, "container_seed_vault");
+		inventoryTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, INVENTORY_ICON, "container_inventory");
+		equipmentTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, EQUIPMENT_ICON, "container_equipment");
 
 		containerContainer.add(bankTabPanel);
 		containerContainer.add(seedVaultTabPanel);
@@ -158,10 +158,10 @@ public class DataExportPluginPanel extends PluginPanel
 	{
 		updateVisibility();
 
-		bankTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, BANK_ICON, "container_bank", plugin.dataExport.getMapBank());
-		seedVaultTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, SEED_VAULT_ICON, "container_seed_vault", plugin.dataExport.getMapSeedVault());
-		inventoryTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, INVENTORY_ICON, "container_inventory", plugin.dataExport.getMapInventory());
-		equipmentTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, EQUIPMENT_ICON, "container_equipment", plugin.dataExport.getMapEquipment());
+		bankTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, BANK_ICON, "container_bank");
+		seedVaultTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, SEED_VAULT_ICON, "container_seed_vault");
+		inventoryTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, INVENTORY_ICON, "container_inventory");
+		equipmentTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, EQUIPMENT_ICON, "container_equipment");
 
 		revalidate();
 		repaint();

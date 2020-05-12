@@ -3,14 +3,8 @@ os: linux
 dist: xenial
 cache:
   directories:
-    - $HOME/.gradle/caches/
-    - $HOME/.gradle/wrapper/
+    - $HOME/.m2
 jdk:
   - openjdk8
-branches:
-  only:
-    - master
-    - stable
 install: true
-before_script: gradle check
-script: gradle build
+script: ./travis.sh

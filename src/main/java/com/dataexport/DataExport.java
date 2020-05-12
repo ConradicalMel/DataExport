@@ -5,15 +5,17 @@ import com.google.gson.Gson;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.game.ItemManager;
 
+@Slf4j
 public class DataExport
 {
 	private final Client client;
@@ -65,72 +67,68 @@ public class DataExport
 
 		hashAllItems = -1;
 
-		mapBank = new HashMap<>();
-		mapSeedVault = new HashMap<>();
-		mapInventory = new HashMap<>();
-		mapEquipment = new HashMap<>();
-		mapItems = new HashMap<>();
+		mapBank = new LinkedHashMap<>();
+		mapSeedVault = new LinkedHashMap<>();
+		mapInventory = new LinkedHashMap<>();
+		mapEquipment = new LinkedHashMap<>();
+		mapItems = new LinkedHashMap<>();
 		arrayListItems = new ArrayList<>();
 	}
 
-	public void exportAllItems()
+	public void exportContainer(String container)
 	{
-		plugin.dataWriter.writeDataFile("container_all_items", mapItems);
-		SwingUtilities.invokeLater(() ->
-		{
-			final Gson gson = new Gson();
-			final String json = gson.toJson(mapItems);
-			final StringSelection contents = new StringSelection(json);
-			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(contents, null);
-//			JOptionPane.showMessageDialog(panel,
-//				"Setup data was copied to clipboard.",
-//				"Export Setup Succeeded",
-//				JOptionPane.PLAIN_MESSAGE);
-		});
-	}
+		Map<Integer, DataExportItem> map;
 
-	public void exportBank()
-	{
-		plugin.dataWriter.writeDataFile("container_bank", mapBank);
+		if (container.equals("container_all_items"))
+		{
+			map = mapItems;
+		}
+		else if (container.equals("container_bank"))
+		{
+			map = mapBank;
+		}
+		else if (container.equals("container_seed_vault"))
+		{
+			map = mapSeedVault;
+		}
+		else if (container.equals("container_inventory"))
+		{
+			map = mapInventory;
+		}
+		else if (container.equals("container_equipment"))
+		{
+			map = mapEquipment;
+		}
+		else if (container.equals("container_all_items"))
+		{
+			map = mapItems;
+		}
+		else
+		{
+			map = new LinkedHashMap<>();
+		}
+
+		if (map == null)
+		{
+			return;
+		}
+
 		SwingUtilities.invokeLater(() ->
 		{
 			final Gson gson = new Gson();
-			final String json = gson.toJson(mapBank);
+			final String json = gson.toJson(map.values());
 			final StringSelection contents = new StringSelection(json);
 			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(contents, null);
 			JOptionPane.showMessageDialog(panel,
-				"Setup data was copied to clipboard.",
+				"Container data was copied to clipboard.",
 				"Export Setup Succeeded",
 				JOptionPane.PLAIN_MESSAGE);
 		});
 	}
+
 	public void rebuildSkillArrayList()
 	{
 
-	}
-
-	public void rebuildItemArrayList()
-	{
-		int quantity = 0;
-
-		int hash = mapItems.hashCode();
-		if (hashAllItems == hash)
-		{
-			return;
-		}
-		System.out.println("New all items hash: " + hashAllItems);
-		hashAllItems = hash;
-
-		for (Map.Entry<Integer, DataExportItem> entry : mapItems.entrySet())
-		{
-			DataExportItem item = entry.getValue();
-			quantity = getTotalQuantityForItem(item.getId());
-			DataExportItem temp = new DataExportItem(item.getName(), quantity, item.getId());
-			mapItems.replace(item.getId(), temp);
-			//System.out.println("ID: " + item.getId() + "\tQuantity: " + item.getQuantity() + "\t\tName: " + item.getName());
-		}
-		System.out.println("Export data");
-		exportAllItems();
 	}
 
 	private int getTotalQuantityForItem(int id)
@@ -163,11 +161,10 @@ public class DataExport
 
 		if (item2 != null)
 		{
-			//System.out.println("Already in list: " + item.getName());
 			return;
 		}
 
-		//System.out.println("Adding to list: " + item.getName());
+		log.info("Adding to list: " + item.getName());
 		mapItems.put(id, item);
 	}
 }

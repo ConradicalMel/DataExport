@@ -3,7 +3,6 @@ package com.dataexport;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.Keybind;
 
 @ConfigGroup("dataexport")
 public interface DataExportConfig extends Config
@@ -65,11 +64,33 @@ public interface DataExportConfig extends Config
 
 	@ConfigItem(
 		keyName = "displayDownload",
-		name = "Include download down",
+		name = "Include download button",
 		description = "Include download button for each container in panel",
 		position = 6
 	)
 	default boolean displayDownload()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "downloadJSON",
+		name = "Download as JSON",
+		description = "Downloading will result in a JSON for a particular container",
+		position = 7
+	)
+	default boolean downloadJSON()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "downloadCSV",
+		name = "Download as CSV",
+		description = "Downloading will result in a CSV for a particular container",
+		position = 8
+	)
+	default boolean downloadCSV()
 	{
 		return false;
 	}

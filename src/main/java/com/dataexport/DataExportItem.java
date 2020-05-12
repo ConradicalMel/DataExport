@@ -1,7 +1,6 @@
 package com.dataexport;
 
 import lombok.Getter;
-import net.runelite.client.game.ItemManager;
 
 public class DataExportItem
 {
@@ -19,5 +18,16 @@ public class DataExportItem
 		this.id = id;
 		this.quantity = quantity;
 		this.name = name;
+	}
+
+	@Override
+	public String toString()
+	{
+		return name + " x " + quantity;
+	}
+
+	public String getCSV()
+	{
+		return id + "," + quantity + "," + name;
 	}
 }

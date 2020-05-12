@@ -1,5 +1,6 @@
 package com.dataexport.localstorage;
 
+import com.dataexport.DataExportConfig;
 import com.dataexport.DataExportItem;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -10,13 +11,15 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import static net.runelite.client.RuneLite.RUNELITE_DIR;
+import net.runelite.client.config.Config;
 import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
-@Singleton
 public class DataWriter
 {
-	private static final String FILE_EXTENSION = ".json";
+	private static final String FILE_EXTENSION_JSON = ".json";
+
+	private static final String FILE_EXTENSION_CSV = ".csv";
 
 	private static final File LOOT_RECORD_DIR = new File(RUNELITE_DIR, "Data Exports");
 
@@ -24,9 +27,11 @@ public class DataWriter
 
 	private String name;
 
-	@Inject
-	public DataWriter()
+	private DataExportConfig config;
+
+	public DataWriter(DataExportConfig config)
 	{
+		this.config = config;
 		LOOT_RECORD_DIR.mkdir();
 	}
 
@@ -42,14 +47,26 @@ public class DataWriter
 		name = username;
 	}
 
-	private static String dataContainerToFileName(final String dataContainerName)
+	public void writeFile(String dataContainer, Map<Integer, DataExportItem> items)
 	{
-		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION;
+		if (config.downloadJSON())
+		{
+			writeJSON(dataContainer, items);
+		}
+		if (config.downloadCSV())
+		{
+			writeCSV(dataContainer, items);
+		}
 	}
 
-	public synchronized  boolean writeDataFile(String dataContainer, Map<Integer, DataExportItem> items)
+	private static String fileNameJSON(final String dataContainerName)
 	{
-		final String fileName = dataContainerToFileName(dataContainer);
+		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION_JSON;
+	}
+
+	public synchronized boolean writeJSON(String dataContainer, Map<Integer, DataExportItem> items)
+	{
+		final String fileName = fileNameJSON(dataContainer);
 		final File lootFile = new File(playerFolder, fileName);
 
 		try
@@ -60,6 +77,37 @@ public class DataWriter
 				// Convert entry to JSON
 				final String dataAsString = RuneLiteAPI.GSON.toJson(item.getValue());
 				file.append(dataAsString);
+				file.newLine();
+			}
+			file.close();
+
+			return true;
+		}
+		catch (IOException ioe)
+		{
+			log.warn("Error rewriting data to file {}: {}", fileName, ioe.getMessage());
+			return false;
+		}
+	}
+
+	private static String fileNameCSV(final String dataContainerName)
+	{
+		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION_CSV;
+	}
+
+	public synchronized boolean writeCSV(String dataContainer, Map<Integer, DataExportItem> items)
+	{
+		final String fileName = fileNameCSV(dataContainer);
+		final File lootFile = new File(playerFolder, fileName);
+
+		try
+		{
+			final BufferedWriter file = new BufferedWriter(new FileWriter(String.valueOf(lootFile), false));
+			for (Map.Entry<Integer, DataExportItem> item : items.entrySet())
+			{
+				// Convert entry to CSV
+				final String line = item.getValue().getCSV();
+				file.append(line);
 				file.newLine();
 			}
 			file.close();

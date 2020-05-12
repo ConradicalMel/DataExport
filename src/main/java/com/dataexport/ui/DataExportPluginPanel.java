@@ -7,17 +7,22 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.PluginErrorPanel;
 import net.runelite.client.util.ImageUtil;
 
+@Slf4j
 public class DataExportPluginPanel extends PluginPanel
 {
 	//private final BankExport bankExport;
@@ -32,19 +37,19 @@ public class DataExportPluginPanel extends PluginPanel
 
 	private static final ImageIcon BANK_ICON;
 
-	private static final ImageIcon SEED_VAULT_ICON;
+	private static ImageIcon SEED_VAULT_ICON;
 
 	private static final ImageIcon INVENTORY_ICON;
 
 	private static final ImageIcon EQUIPMENT_ICON;
 
-	DataExportTabContentPanel bankTabPanel;
+	DataExportTabPanel bankTabPanel;
 
-	DataExportTabContentPanel seedVaultTabPanel;
+	DataExportTabPanel seedVaultTabPanel;
 
-	DataExportTabContentPanel inventoryTabPanel;
+	DataExportTabPanel inventoryTabPanel;
 
-	DataExportTabContentPanel equipmentTabPanel;
+	DataExportTabPanel equipmentTabPanel;
 
 	private final PluginErrorPanel errorPanel = new PluginErrorPanel();
 
@@ -60,6 +65,8 @@ public class DataExportPluginPanel extends PluginPanel
 	private final JButton downloadButton = new JButton();
 
 	private static final Color HOVER_COLOR = ColorScheme.DARKER_GRAY_HOVER_COLOR;
+
+	private Map<Tab, DataExportTabPanel> containers = new LinkedHashMap<>();
 
 	//private final JLabel statusLabel;
 
@@ -87,83 +94,116 @@ public class DataExportPluginPanel extends PluginPanel
 		this.config = config;
 		this.dataExport = dataExport;
 
-		setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BorderLayout());
 		setBorder(new EmptyBorder(7, 7, 7, 7));
 
 		wrapperPanel.setLayout(new BoxLayout(wrapperPanel, BoxLayout.Y_AXIS));
-		wrapperPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		wrapperPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
 		containerContainer.setLayout(new GridLayout(0, 1, 0, 8));
-		containerContainer.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		containerContainer.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		containerContainer.setVisible(true);
 
-		bankTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, BANK_ICON, "container_bank");
-		seedVaultTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, SEED_VAULT_ICON, "container_seed_vault");
-		inventoryTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, INVENTORY_ICON, "container_inventory");
-		equipmentTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, EQUIPMENT_ICON, "container_equipment");
+		Arrays.asList(Tab.CONTAINER_TABS).forEach(t ->
+		{
+			DataExportTabPanel p = new DataExportTabPanel(plugin, this, config, dataExport, itemManager, t, t.getName(), t.getFilePrefix(), "Not ready");
+			containers.put(t, p);
+		});
 
-		containerContainer.add(bankTabPanel);
-		containerContainer.add(seedVaultTabPanel);
-		containerContainer.add(equipmentTabPanel);
-		containerContainer.add(inventoryTabPanel);
+		containers.forEach((tab, panel) ->
+			containerContainer.add(panel));
 
 		wrapperPanel.add(containerContainer);
 
 		this.add(wrapperPanel);
 
+		updateVisibility();
 		rebuild();
 	}
 
 	public void updateVisibility()
 	{
-		if (!config.includeBank())
-		{
-			bankTabPanel.setVisible(false);
-		}
-		else
-		{
-			bankTabPanel.setVisible(true);
-		}
+		containerContainer.removeAll();
 
-		if (!config.includeSeedVault())
-		{
-			seedVaultTabPanel.setVisible(false);
-		}
-		else
-		{
-			seedVaultTabPanel.setVisible(true);
-		}
+//		Arrays.asList(Tab.CONTAINER_TABS).forEach(t ->
+//		{
+//			if (containers.get(t) != null)
+//			{
+//				String status = containers.get(t).getStatus();
+//				DataExportTabPanel p = new DataExportTabPanel(plugin, this, config, dataExport, itemManager, t, t.getName(), t.getFilePrefix(), status);
+//				containers.put(t, p);
+//			}
+//			else
+//			{
+//				DataExportTabPanel p = new DataExportTabPanel(plugin, this, config, dataExport, itemManager, t, t.getName(), t.getFilePrefix(), "Not ready");
+//				containers.put(t, p);
+//			}
+//		});
 
-		if (!config.includeInventory())
-		{
-			inventoryTabPanel.setVisible(false);
-		}
-		else
-		{
-			inventoryTabPanel.setVisible(true);
-		}
+		log.debug("Containers: {}", containers.values());
 
-		if (!config.includeEquipment())
+		containers.forEach((t, p) ->
 		{
-			equipmentTabPanel.setVisible(false);
-		}
-		else
+			if (p.isVisibility())
+			{
+				containerContainer.add(p);
+			}
+		});
+
+		rebuild();
+	}
+
+	public void setVisibility(Tab tab, boolean visibility)
+	{
+		log.debug("Containers: {}", containers.values());
+
+		Map<Tab, DataExportTabPanel> containersTemp = new LinkedHashMap<>();
+
+		containers.forEach((t, p) ->
 		{
-			equipmentTabPanel.setVisible(true);
-		}
+			if (p.isVisibility() && t.getName().compareTo(p.getTitle()) != 0)
+			{
+				setVisibility(Tab.ALL_ITEMS, true);
+			}
+			if (tab.getName().equals(t.getName()))
+			{
+				DataExportTabPanel panel = containers.get(tab);
+				panel.setVisibility(visibility);
+				containersTemp.put(t, panel);
+			}
+
+			containersTemp.put(t, p);
+		});
+
+		containers = containersTemp;
+	}
+
+	public void updateTab(String container, String newStatus)
+	{
+		containers.forEach((tab, panel) ->
+		{
+			if (panel.getTitle().equals(container))
+			{
+				panel.updateStatus(newStatus);
+			}
+			containers.put(tab, panel);
+		});
+
+		containers.forEach((tab, panel) ->
+			containerContainer.add(panel));
+
+		rebuild();
 	}
 
 	public void rebuild()
 	{
-		updateVisibility();
-
-		bankTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, BANK_ICON, "container_bank");
-		seedVaultTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, SEED_VAULT_ICON, "container_seed_vault");
-		inventoryTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, INVENTORY_ICON, "container_inventory");
-		equipmentTabPanel = new DataExportTabContentPanel(plugin, this, config, dataExport, itemManager, EQUIPMENT_ICON, "container_equipment");
-
 		revalidate();
 		repaint();
+	}
+
+	public void exportContainer(String containerName)
+	{
+
 	}
 }

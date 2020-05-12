@@ -10,8 +10,6 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -22,10 +20,13 @@ import net.runelite.api.Constants;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
-import net.runelite.client.util.ImageUtil;
 
 public class DataExportTabPanel extends JPanel
 {
+	private static final Color COLOR = ColorScheme.DARK_GRAY_COLOR;
+
+	private static final Color HOVER_COLOR = ColorScheme.DARKER_GRAY_HOVER_COLOR;
+
 	private final ItemManager itemManager;
 
 	private final DataExportPlugin plugin;
@@ -35,24 +36,6 @@ public class DataExportTabPanel extends JPanel
 	private final DataExportConfig config;
 
 	private final DataExport dataExport;
-
-	private static final ImageIcon EXPORT_ICON;
-
-	private static final ImageIcon DOWNLOAD_ICON;
-
-	JLabel readyLabel = new JLabel();
-
-	JButton buttonExport = new JButton();
-
-	JButton buttonDownload = new JButton();
-
-	private static final Color COLOR = ColorScheme.DARK_GRAY_COLOR;
-
-	private static final Color HOVER_COLOR = ColorScheme.DARKER_GRAY_HOVER_COLOR;
-
-	private final JLabel exportLabel = new JLabel("Export");
-
-	private final JLabel downloadLabel = new JLabel("Download");
 
 	@Getter
 	public String title;
@@ -65,14 +48,11 @@ public class DataExportTabPanel extends JPanel
 	@Setter
 	public boolean visibility = true;
 
-	static
-	{
-		BufferedImage exportIcon = ImageUtil.getResourceStreamFromClass(DataExportPlugin.class, "/export_icon.png");
-		BufferedImage downloadIcon = ImageUtil.getResourceStreamFromClass(DataExportPlugin.class, "/export_icon.png");
+	JLabel readyLabel;
 
-		EXPORT_ICON = new ImageIcon(exportIcon);
-		DOWNLOAD_ICON = new ImageIcon(downloadIcon);
-	}
+	JButton buttonExport;
+
+	JButton buttonDownload;
 
 	DataExportTabPanel(DataExportPlugin plugin, DataExportPluginPanel panel, DataExportConfig config, DataExport dataExport, ItemManager itemManager, Tab tab, String title, String container, String status)
 	{
@@ -124,7 +104,6 @@ public class DataExportTabPanel extends JPanel
 		buttonContainer.setBorder(new EmptyBorder(5, 10, 5, 10));
 
 		buttonExport = new JButton();
-		//buttonExport.setIcon(EXPORT_ICON);
 		buttonExport.setText("Export");
 		buttonExport.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		buttonExport.setBorder(new EmptyBorder(3, 7, 3, 7));
@@ -160,7 +139,6 @@ public class DataExportTabPanel extends JPanel
 		});
 
 		buttonDownload = new JButton();
-		//buttonDownload.setIcon(DOWNLOAD_ICON);
 		buttonDownload.setText("Download");
 		buttonDownload.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		buttonDownload.setBorder(new EmptyBorder(3, 7, 3, 7));

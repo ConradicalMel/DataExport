@@ -41,7 +41,9 @@ public enum Tab
 	public static final Tab[] CONTAINER_TABS = {ALL_ITEMS, BANK, SEED_VAULT, INVENTORY, EQUIPMENT};
 
 	private final String name;
+
 	private final int itemID;
+
 	private final String filePrefix;
 
 	@Override

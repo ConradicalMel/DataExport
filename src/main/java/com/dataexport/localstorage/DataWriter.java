@@ -7,11 +7,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import static net.runelite.client.RuneLite.RUNELITE_DIR;
-import net.runelite.client.config.Config;
 import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
@@ -33,6 +30,16 @@ public class DataWriter
 	{
 		this.config = config;
 		LOOT_RECORD_DIR.mkdir();
+	}
+
+	private static String fileNameJSON(final String dataContainerName)
+	{
+		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION_JSON;
+	}
+
+	private static String fileNameCSV(final String dataContainerName)
+	{
+		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION_CSV;
 	}
 
 	public void setPlayerUsername(final String username)
@@ -59,11 +66,6 @@ public class DataWriter
 		}
 	}
 
-	private static String fileNameJSON(final String dataContainerName)
-	{
-		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION_JSON;
-	}
-
 	public synchronized boolean writeJSON(String dataContainer, Map<Integer, DataExportItem> items)
 	{
 		final String fileName = fileNameJSON(dataContainer);
@@ -88,11 +90,6 @@ public class DataWriter
 			log.warn("Error rewriting data to file {}: {}", fileName, ioe.getMessage());
 			return false;
 		}
-	}
-
-	private static String fileNameCSV(final String dataContainerName)
-	{
-		return dataContainerName.toLowerCase().trim() + FILE_EXTENSION_CSV;
 	}
 
 	public synchronized boolean writeCSV(String dataContainer, Map<Integer, DataExportItem> items)

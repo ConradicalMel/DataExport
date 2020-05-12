@@ -39,6 +39,16 @@ import net.runelite.client.util.ImageUtil;
 )
 public class DataExportPlugin extends Plugin
 {
+	private static final Set<Integer> CONTAINERS = ImmutableSet.of(InventoryID.BANK.getId(), InventoryID.SEED_VAULT.getId(), InventoryID.INVENTORY.getId(), InventoryID.EQUIPMENT.getId());
+
+	public DataWriter dataWriter;
+
+	public DataExport dataExport;
+
+	public Map<Tab, Boolean> visibilityMap = new LinkedHashMap<>();
+
+	int hashAllItems = -1;
+
 	@Inject
 	private Client client;
 
@@ -60,11 +70,7 @@ public class DataExportPlugin extends Plugin
 	@Inject
 	private KeyManager keyManager;
 
-	public DataWriter dataWriter;
-
 	private DataExportPluginPanel panel;
-
-	public DataExport dataExport;
 
 	private NavigationButton navButton;
 
@@ -76,17 +82,11 @@ public class DataExportPlugin extends Plugin
 
 	private int hashEquipment = -1;
 
-	int hashAllItems = -1;
+	//private static final Logger logger = LoggerFactory.getLogger(DataExportPlugin.class);
 
 	private int hashSkills = -1;
 
 	private int lastTick = -1;
-
-	//private static final Logger logger = LoggerFactory.getLogger(DataExportPlugin.class);
-
-	private static final Set<Integer> CONTAINERS = ImmutableSet.of(InventoryID.BANK.getId(), InventoryID.SEED_VAULT.getId(), InventoryID.INVENTORY.getId(), InventoryID.EQUIPMENT.getId());
-
-	public Map<Tab, Boolean> visibilityMap = new LinkedHashMap<>();
 
 	@Provides
 	DataExportConfig provideConfig(ConfigManager configManager)
@@ -377,7 +377,7 @@ public class DataExportPlugin extends Plugin
 			dataExport.exportContainer(container);
 		}
 	}
-	
+
 	public void downloadContainer(String container)
 	{
 		if (container.equals("container_all_items"))

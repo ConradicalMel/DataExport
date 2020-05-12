@@ -24,6 +24,8 @@ public class DataExport
 
 	private final ItemManager itemManager;
 
+	int hashAllItems;
+
 	@Getter
 	@Setter
 	private Map<Integer, DataExportItem> mapBank;
@@ -51,8 +53,6 @@ public class DataExport
 	@Getter
 	@Setter
 	private ArrayList<Integer> arrayListItems;
-
-	int hashAllItems;
 
 	private DataExportPluginPanel panel;
 

@@ -5,18 +5,29 @@ import lombok.Getter;
 public class DataExportItem
 {
 	@Getter
-	private final String name;
+	private final int id;
 
 	@Getter
 	private final int quantity;
 
 	@Getter
-	private final int id;
+	private final String name;
 
 	DataExportItem(String name, int quantity, int id)
 	{
-		this.name = name;
-		this.quantity = quantity;
 		this.id = id;
+		this.quantity = quantity;
+		this.name = name;
+	}
+
+	@Override
+	public String toString()
+	{
+		return name + " x " + quantity;
+	}
+
+	public String getCSV()
+	{
+		return id + "," + quantity + "," + name;
 	}
 }

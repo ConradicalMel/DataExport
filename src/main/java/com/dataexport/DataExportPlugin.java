@@ -1,9 +1,18 @@
 package com.dataexport;
 
+import com.dataexport.localstorage.DataWriter;
+import com.dataexport.ui.DataExportPluginPanel;
+import com.dataexport.ui.Tab;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Provides;
+import java.awt.image.BufferedImage;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
+import javax.swing.SwingUtilities;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.InventoryID;
@@ -11,20 +20,22 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.ItemContainerChanged;
-import net.runelite.api.events.ScriptCallbackEvent;
-import net.runelite.api.events.WidgetLoaded;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.ImageUtil;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Bank Export"
+	name = "Data Export"
 )
 public class DataExportPlugin extends Plugin
 {
@@ -46,13 +57,36 @@ public class DataExportPlugin extends Plugin
 	@Inject
 	private DataExportConfig config;
 
-	private DataExport dataExport;
+	@Inject
+	private KeyManager keyManager;
+
+	public DataWriter dataWriter;
+
+	private DataExportPluginPanel panel;
+
+	public DataExport dataExport;
+
+	private NavigationButton navButton;
 
 	private int hashBank = -1;
+
 	private int hashSeedVault = -1;
+
 	private int hashInventory = -1;
+
 	private int hashEquipment = -1;
+
+	int hashAllItems = -1;
+
 	private int hashSkills = -1;
+
+	private int lastTick = -1;
+
+	//private static final Logger logger = LoggerFactory.getLogger(DataExportPlugin.class);
+
+	private static final Set<Integer> CONTAINERS = ImmutableSet.of(InventoryID.BANK.getId(), InventoryID.SEED_VAULT.getId(), InventoryID.INVENTORY.getId(), InventoryID.EQUIPMENT.getId());
+
+	public Map<Tab, Boolean> visibilityMap = new LinkedHashMap<>();
 
 	@Provides
 	DataExportConfig provideConfig(ConfigManager configManager)
@@ -63,86 +97,132 @@ public class DataExportPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		log.info("Bank Export started!");
+		log.debug("Data Export started!");
+		dataExport = new DataExport(client, config, itemManager, this);
+		dataWriter = new DataWriter(config);
 
-		dataExport = new DataExport(client, config, itemManager);
+		Arrays.asList(Tab.CONTAINER_TABS).forEach(t ->
+		{
+			visibilityMap.put(t, true);
+		});
+
+		this.panel = new DataExportPluginPanel(itemManager, this, config, dataExport);
+
+		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(getClass(), "/data_export_icon.png");
+
+		navButton = NavigationButton.builder()
+			.tooltip("Data Exporter")
+			.icon(icon)
+			.priority(6)
+			.panel(panel)
+			.build();
+
+		clientToolbar.addNavigation(navButton);
+
+		clientThread.invokeLater(() ->
+		{
+			switch (client.getGameState())
+			{
+				case STARTING:
+				case UNKNOWN:
+					return false;
+			}
+
+			SwingUtilities.invokeLater(() ->
+			{
+				panel.rebuild();
+			});
+
+			return true;
+		});
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("Bank Export stopped!");
+		log.debug("Data Export stopped!");
+
+		clientToolbar.removeNavigation(navButton);
 
 	}
 
 	@Subscribe
-	public void onScriptCallbackEvent(ScriptCallbackEvent event)
+	public void onConfigChanged(ConfigChanged event)
 	{
-//		if (!event.getEventName().equals("setBankTitle") || client.getTickCount() == lastCheckTick)
-//		{
-//			return;
-//		}
-//
-//		// Check if the contents have changed.
-//		final ItemContainer c = client.getItemContainer(InventoryID.BANK);
-//		if (c == null)
-//		{
-//			return;
-//		}
-//
-//		final Item[] widgetItems = c.getItems();
-//		if (widgetItems == null || widgetItems.length == 0)
-//		{
-//			return;
-//		}
-//
-//		ArrayList<DataExportItem> arrayList = new ArrayList<>();
-//
-//		for (Item widgetItem : widgetItems)
-//		{
-//			ItemComposition itemComposition = itemManager.getItemComposition(widgetItem.getId());
-//			String name = itemComposition.getName();
-//			DataExportItem item = new DataExportItem(name, widgetItem.getQuantity(), widgetItem.getId());
-//			arrayList.add(item);
-//		}
-//
-//		final int curHash = arrayList.hashCode();
-//		if (bankHash != curHash)
-//		{
-//			bankHash = curHash;
-//			//SwingUtilities.invokeLater(() -> panel.setBankMap(m));
-//		}
-//
-//		lastCheckTick = client.getTickCount();
-//
-//		for (DataExportItem item : arrayList)
-//		{
-//			System.out.println("Name: " + item.getName() + "\tQuantity: " + item.getQuantity() + "\tID: " + item.getId());
-//		}
-//
-//		dataExport.setArrayListBank(arrayList);
-//		dataExport.rebuildItemArrayList();
+		if (!event.getGroup().equals("dataexport"))
+		{
+			return;
+		}
 
-	}
+		Map<Integer, DataExportItem> mapBlank = new HashMap<>();
+		if (!config.includeBank())
+		{
+			dataExport.setMapBank(mapBlank);
+			visibilityMap.put(Tab.BANK, false);
+		}
+		else
+		{
+			visibilityMap.put(Tab.BANK, true);
+		}
 
-	@Subscribe
-	public void onWidgetLoaded(WidgetLoaded event)
-	{
-//		if (event.getGroupId() != WidgetID.SEED_VAULT_GROUP_ID || !config.seedVaultValue())
-//		{
-//			return;
-//		}
-//
-//		updateSeedVaultData();
+		if (!config.includeSeedVault())
+		{
+			dataExport.setMapSeedVault(mapBlank);
+			visibilityMap.put(Tab.SEED_VAULT, false);
+		}
+		else
+		{
+			visibilityMap.put(Tab.SEED_VAULT, true);
+		}
+
+		if (!config.includeInventory())
+		{
+			dataExport.setMapInventory(mapBlank);
+			visibilityMap.put(Tab.INVENTORY, false);
+		}
+		else
+		{
+			visibilityMap.put(Tab.INVENTORY, true);
+		}
+
+		if (!config.includeEquipment())
+		{
+			dataExport.setMapEquipment(mapBlank);
+			visibilityMap.put(Tab.EQUIPMENT, false);
+		}
+		else
+		{
+			visibilityMap.put(Tab.EQUIPMENT, true);
+		}
+
+		visibilityMap.forEach((t, v) ->
+		{
+			panel.setVisibility(t, v);
+		});
+
+		panel.updateVisibility();
+		panel.rebuild();
 	}
 
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
+		int tick = client.getTickCount();
+		if (tick == lastTick)
+		{
+			return;
+		}
+		lastTick = tick;
+
 		ItemContainer itemContainer = event.getItemContainer();
 		int itemContainerId = event.getContainerId();
 
 		if (itemContainer == null)
+		{
+			return;
+		}
+
+		if (!CONTAINERS.contains(itemContainerId))
 		{
 			return;
 		}
@@ -154,8 +234,9 @@ public class DataExportPlugin extends Plugin
 		}
 
 		int hash = hashItems(widgetItems);
+		//log.info("New hash: " + hash);
 
-		Map<Integer, DataExportItem> mapContainer = new HashMap<>();
+		Map<Integer, DataExportItem> mapContainer = new LinkedHashMap<>();
 
 		for (Item widgetItem : widgetItems)
 		{
@@ -165,68 +246,160 @@ public class DataExportPlugin extends Plugin
 			int quantity = widgetItem.getQuantity();
 			int id = widgetItem.getId();
 
+			if (itemComposition.getPlaceholderTemplateId() != -1)
+			{
+				quantity = 0;
+			}
+
 			if (name != null && quantity > 0 && id != -1)
 			{
 				DataExportItem item = new DataExportItem(name, quantity, id);
 				mapContainer.putIfAbsent(id, item);
+				dataExport.addItemAll(id, item);
 			}
 		}
 
-		if (mapContainer == null)
+		if (mapContainer.size() < 2)
 		{
 			return;
 		}
 
-		Map<Integer, DataExportItem> mapItems = dataExport.getMapItems();
-		mapItems.putAll(mapContainer);
-		dataExport.setMapItems(mapItems);
-
 		if (itemContainerId == InventoryID.BANK.getId() && config.includeBank() && hash != hashBank)
 		{
+			log.debug("Bank hash: " + hashBank + "   ->   " + hash);
 			hashBank = hash;
 			updateBankData(mapContainer);
 		}
 		else if (itemContainerId == InventoryID.SEED_VAULT.getId() && config.includeSeedVault() && hash != hashSeedVault)
 		{
+			log.debug("Seed vault hash: " + hashSeedVault + "   ->   " + hash);
 			hashSeedVault = hash;
 			updateSeedVaultData(mapContainer);
 		}
 		else if (itemContainerId == InventoryID.INVENTORY.getId() && config.includeInventory() && hash != hashInventory)
 		{
+			log.debug("Inventory hash: " + hashInventory + "   ->   " + hash);
 			hashInventory = hash;
 			updateInventoryData(mapContainer);
 		}
 		else if (itemContainerId == InventoryID.EQUIPMENT.getId() && config.includeEquipment() && hash != hashEquipment)
 		{
+			log.debug("Equipment hash: " + hashEquipment + "   ->   " + hash);
 			hashEquipment = hash;
 			updateEquipmentData(mapContainer);
 		}
-
-		dataExport.rebuildItemArrayList();
 	}
 
 	private void updateBankData(Map<Integer, DataExportItem> map)
 	{
-		System.out.println("Updating bank!");
 		dataExport.setMapBank(map);
+		dataWriter.writeJSON("container_bank", map);
+		log.debug("Bank Container Map: {}", map);
+
+		if (map.size() > 1)
+		{
+			panel.updateTab("Bank", "Ready");
+		}
+		else
+		{
+			panel.updateTab("Bank", "Visit a bank!");
+		}
 	}
 
 	private void updateSeedVaultData(Map<Integer, DataExportItem> map)
 	{
-		System.out.println("Updating seed vault!");
 		dataExport.setMapSeedVault(map);
+		dataWriter.writeJSON("container_seed_vault", map);
+		log.debug("Seed Vault Container Map: {}", map);
+
+		if (map.size() > 1)
+		{
+			panel.updateTab("Seed Vault", "Ready");
+		}
+		else
+		{
+			panel.updateTab("Seed Vault", "Inventory empty");
+		}
 	}
 
 	private void updateInventoryData(Map<Integer, DataExportItem> map)
 	{
-		System.out.println("Updating inventory!");
 		dataExport.setMapInventory(map);
+		dataWriter.writeJSON("container_inventory", map);
+		log.debug("Inventory Container Map: {}", map);
+
+		if (map.size() > 1)
+		{
+			panel.updateTab("Inventory", "Ready");
+		}
+		else
+		{
+			panel.updateTab("Inventory", "No items equipped");
+		}
 	}
 
 	private void updateEquipmentData(Map<Integer, DataExportItem> map)
 	{
-		System.out.println("Updating equipment!");
 		dataExport.setMapEquipment(map);
+		dataWriter.writeJSON("container_equipment", map);
+		log.debug("Equipment Container Map: {}", map);
+
+		if (map.size() > 1)
+		{
+			panel.updateTab("Equipment", "Ready");
+		}
+		else
+		{
+			panel.updateTab("Equipment", "No items equipped");
+		}
+	}
+
+	public void exportContainer(String container)
+	{
+		if (container.equals("container_all_items"))
+		{
+			dataExport.exportContainer(container);
+		}
+		else if (container.equals("container_bank"))
+		{
+			dataExport.exportContainer(container);
+		}
+		else if (container.equals("container_seed_vault"))
+		{
+			dataExport.exportContainer(container);
+		}
+		else if (container.equals("container_inventory"))
+		{
+			dataExport.exportContainer(container);
+		}
+		else if (container.equals("container_equipment"))
+		{
+			dataExport.exportContainer(container);
+		}
+	}
+	
+	public void downloadContainer(String container)
+	{
+		if (container.equals("container_all_items"))
+		{
+			dataWriter.writeFile(container, dataExport.getMapItems());
+		}
+		else if (container.equals("container_bank"))
+		{
+			dataWriter.writeFile(container, dataExport.getMapBank());
+		}
+		else if (container.equals("container_seed_vault"))
+		{
+			dataWriter.writeFile(container, dataExport.getMapSeedVault());
+		}
+		else if (container.equals("container_inventory"))
+		{
+			dataWriter.writeFile(container, dataExport.getMapInventory());
+		}
+		else if (container.equals("container_equipment"))
+		{
+			dataWriter.writeFile(container, dataExport.getMapEquipment());
+		}
 	}
 
 	private int hashItems(final Item[] items)

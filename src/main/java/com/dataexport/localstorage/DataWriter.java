@@ -74,13 +74,16 @@ public class DataWriter
 		try
 		{
 			final BufferedWriter file = new BufferedWriter(new FileWriter(String.valueOf(lootFile), false));
+			file.append("[");
 			for (Map.Entry<Integer, DataExportItem> item : items.entrySet())
 			{
 				// Convert entry to JSON
 				final String dataAsString = RuneLiteAPI.GSON.toJson(item.getValue());
 				file.append(dataAsString);
+				file.append(",");
 				file.newLine();
 			}
+			file.append("]");
 			file.close();
 
 			return true;
